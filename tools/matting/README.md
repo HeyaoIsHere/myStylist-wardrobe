@@ -38,10 +38,10 @@ The service picks the best working tier at startup and prints it:
 | mixed | CPU       | CUDA      | ~5-10s    |
 | cpu   | CPU       | CPU       | ~15-30s   |
 
-CPU torch is what PyPI mirrors install by default. For CUDA on Windows, install
-torch + torchvision from the SJTU wheel index, e.g.
-`pip install torch torchvision --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu126`
-(see `requirements.txt` for pinned versions).
+`run.bat` auto-detects an NVIDIA GPU (`nvidia-smi`) and installs the CUDA
+torch wheels from the SJTU wheel index when present — otherwise it keeps the
+mirror's CPU torch. The pinned versions live in `run.bat` next to the base
+versions in `requirements.txt` (keep them in sync when upgrading).
 
 ## API
 
@@ -52,11 +52,11 @@ torch + torchvision from the SJTU wheel index, e.g.
 {"stage":"detect"}
 {"stage":"mask"}
 {"stage":"normalize"}
-{"stage":"done","url":"/uploads/abc123.png","categoryHint":"tops"}
+{"stage":"done","url":"/uploads/abc123.png","baseUrl":"http://127.0.0.1:8001","categoryHint":"tops"}
 ```
 
 On local-pipeline failure:
-`{"stage":"manual","url":"/uploads/abc123.png","categoryHint":null}`
+`{"stage":"manual","url":"/uploads/abc123.png","baseUrl":"http://127.0.0.1:8001","categoryHint":null}`
 (empty-mask overlay — paint manually).
 On hard error: `{"stage":"error","message":"..."}`.
 

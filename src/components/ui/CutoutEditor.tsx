@@ -88,6 +88,9 @@ export function CutoutEditor({ photoSrc, maskSrc, initialEmpty, onSave }: Cutout
       photo.onerror = retry;
       photo.src = photoSrc;
       if (overlay) {
+        // crossOrigin so a cloud-hosted overlay (different origin) can be
+        // drawn to canvas without tainting it — the service sends CORS headers
+        overlay.crossOrigin = "anonymous";
         overlay.onload = () => {
           overlayOk = true;
           compose();

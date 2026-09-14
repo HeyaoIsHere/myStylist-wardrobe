@@ -3,7 +3,9 @@
 > Know your wardrobe. Understand your style. Dress better.
 
 A self-hosted digital wardrobe + outfit sticker-board app: upload photos of your own clothes, the AI cuts them out (GroundingDINO + SAM2), each piece becomes a transparent sticker, and you can freely compose outfits on a board and save them. Bilingual UI (Chinese / English).
-![image](https://github.com/HeyaoIsHere/myStylist-wardrobe/demo.gif)
+
+![demo](demo.gif)
+
 ## Features
 
 | Feature | Description |

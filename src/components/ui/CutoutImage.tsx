@@ -15,6 +15,11 @@ export function CutoutImage({ src, alt = "", className = "" }: CutoutImageProps)
   const requestRef = useRef(0);
 
   useEffect(() => {
+    // Storage URLs are already transparent cutouts — no canvas processing
+    if (src.startsWith("http")) {
+      setResult(null);
+      return;
+    }
     const id = ++requestRef.current;
     let alive = true;
     cutoutCanvas(src, 640)

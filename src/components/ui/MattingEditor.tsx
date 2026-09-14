@@ -130,7 +130,11 @@ export function MattingEditor({ src, onDone, onHint, onCancel }: MattingEditorPr
           {showEditor ? (
             <CutoutEditor
               photoSrc={src}
-              maskSrc={result.url}
+              maskSrc={
+                result.baseUrl && !result.url.startsWith("http")
+                  ? result.baseUrl + result.url
+                  : result.url
+              }
               initialEmpty={stage === "manual"}
               onSave={setEdited}
             />

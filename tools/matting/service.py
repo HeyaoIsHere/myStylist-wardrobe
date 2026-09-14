@@ -27,9 +27,10 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageFilter
 from scipy import ndimage
 
@@ -160,9 +161,15 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="myStylist matting", lifespan=lifespan)
 
+# Local dev origins always allowed; cloud deployments pass their web-app
+# origin(s) via MATTING_ALLOW_ORIGINS (comma-separated).
+ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] + [
+    o.strip() for o in os.environ.get("MATTING_ALLOW_ORIGINS", "").split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
@@ -171,6 +178,12 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"ok": True, "tier": state.get("tier", "loading")}
+
+
+# Serve the generated overlays from this service too (cloud deployments have
+# no Next.js public/ folder to fall back on; locally this is additive).
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 
 def line(obj: dict) -> str:
@@ -567,7 +580,7 @@ def photo_canvas(img: Image.Image) -> Image.Image:
 
 
 @app.post("/matting")
-async def matting(body: dict):
+async def matting(request: Request, body: dict):
     image_b64 = (body or {}).get("image", "")
     if not image_b64:
         return StreamingResponse(iter([line({"stage": "error", "message": "no image"})]),
@@ -610,6 +623,9 @@ async def matting(body: dict):
             yield line({
                 "stage": stage_out,
                 "url": f"/uploads/{fname}",
+                # absolute base so the browser can load the overlay from
+                # this service even when the web app lives on another origin
+                "baseUrl": str(request.base_url).rstrip("/"),
                 "categoryHint": category,
             })
         except MattingError as e:

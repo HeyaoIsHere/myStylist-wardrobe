@@ -1,6 +1,6 @@
-# Matting service deps — default PyPI torch on Windows ships CUDA wheels
-# (RTX 3050 Laptop, 4GB); the service falls back to CPU automatically if
-# CUDA is unavailable or runs out of memory.
+# Matting service deps. Note: the pip mirrors ship CPU-only torch on
+# Windows — run.bat swaps in CUDA wheels when an NVIDIA GPU is present
+# (the service falls back to CPU automatically if CUDA runs out of memory).
 torch>=2.5.1
 torchvision>=0.20.1
 transformers>=5.17
