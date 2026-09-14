@@ -1,0 +1,12 @@
+# Matting service deps — default PyPI torch on Windows ships CUDA wheels
+# (RTX 3050 Laptop, 4GB); the service falls back to CPU automatically if
+# CUDA is unavailable or runs out of memory.
+torch>=2.5.1
+torchvision>=0.20.1
+transformers>=5.17
+sam2
+fastapi
+uvicorn[standard]
+pillow
+numpy
+scipy
