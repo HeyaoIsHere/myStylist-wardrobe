@@ -69,7 +69,7 @@ tools\matting\run.bat
 On first run it: creates `.venv` → installs dependencies (torch ~2.5GB) → downloads model weights (~800MB) → serves `http://127.0.0.1:8001`.
 
 - **China networks**: set `set HF_ENDPOINT=https://hf-mirror.com` before running to download models via the HF mirror.
-- **GPU acceleration**: the default CPU torch works (slower); for CUDA torch on Windows, install from the SJTU wheel index (see `tools/matting/README.md`).
+- **GPU acceleration**: `run.bat` auto-detects an NVIDIA GPU and installs CUDA torch wheels from the SJTU wheel index; without a GPU it keeps CPU torch (slower, ~15–30s per photo).
 - **The app works without this service**: after uploading, it automatically falls back to manual painting mode — brush over the part to keep.
 
 Model weights are **not distributed with this repo** — `download-models.py` downloads everything on first run.
