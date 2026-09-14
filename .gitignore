@@ -1,0 +1,63 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# next.js build / dev cache
+/.next/
+/out/
+
+# production
+/build
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+*.pem
+
+# debug / logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# env files — never commit keys
+.env
+.env.*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# runtime store — contains the user's wardrobe & outfits (NEVER commit)
+/data
+
+# matting service: uploads, downloaded models, venv, cache
+/public/uploads
+/tools/matting/models
+/tools/matting/.venv
+/tools/matting/__pycache__
+/tools/matting/debug-fail.jpg
+__pycache__/
+*.pyc
+
+# demo photo dataset — regenerate via scripts/fetch-assets.mjs if needed
+/public/images
+
+# generated asset manifest (photos ↔ SVG mapping)
+/src/lib/assets-manifest.json
+
+# tunnel binary
+/tools/cloudflared.exe
