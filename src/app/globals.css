@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "../../public/fonts/fonts.css";
+
+@theme {
+  /* — myStylist palette: cream paper, warm ink, thin hairlines — */
+  --color-paper: #f5f0e7;
+  --color-surface: #fbf8f2;
+  --color-ink: #211d18;
+  --color-ink-soft: #5c554b;
+  --color-ink-faint: #948b7d;
+  --color-line: #e3dbcb;
+  --color-line-strong: #cbc1ad;
+  --color-camel: #b08d57;
+  --color-camel-deep: #96753f;
+  --color-camel-soft: #ecdfc7;
+  --color-terra: #b97a55;
+  --color-sage: #8b8a62;
+  --color-blush: #e8d9be;
+  --color-board: #ece2cf;
+
+  --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+  --font-sans: "Inter", -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+
+  --shadow-hair: 0 1px 2px rgba(33, 29, 24, 0.05);
+  --shadow-soft: 0 10px 34px rgba(33, 29, 24, 0.08);
+
+  --animate-fade-up: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.7s ease both;
+  --animate-shimmer: shimmer 1.7s linear infinite;
+  --animate-drift: drift 7s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes drift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-camel-soft);
+  }
+  button {
+    cursor: pointer;
+  }
+  img {
+    user-select: none;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-[0.24em] text-ink-faint;
+  }
+  .hairline {
+    @apply border border-line;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-ink px-6 py-3 text-sm text-paper transition-colors duration-200 hover:bg-ink/85 disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 border border-ink/70 px-6 py-3 text-sm text-ink transition-colors duration-200 hover:bg-ink hover:text-paper disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 text-sm text-ink-soft transition-colors hover:text-ink;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 border border-line-strong px-3.5 py-1.5 text-[13px] text-ink-soft transition-colors duration-150 select-none hover:border-ink/60 hover:text-ink;
+  }
+  .chip-active {
+    @apply border-ink bg-ink text-paper hover:text-paper hover:border-ink;
+  }
+  .input {
+    @apply w-full border border-line-strong bg-surface px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-faint focus:border-ink;
+  }
+  .serif-display {
+    @apply font-serif font-medium tracking-tight;
+  }
+  /* Fake "background removed" cutout: fades image edges into the paper tone */
+  .cutout {
+    -webkit-mask-image: radial-gradient(ellipse 76% 70% at 50% 46%, black 60%, transparent 95%);
+    mask-image: radial-gradient(ellipse 76% 70% at 50% 46%, black 60%, transparent 95%);
+  }
+  .shimmer-bg {
+    background: linear-gradient(100deg, #ece5d6 40%, #f8f4ec 50%, #ece5d6 60%);
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+  /* transparency checkerboard for the matting editor */
+  .checker {
+    background-image: conic-gradient(#e8e1d3 25%, #faf7f0 0 50%, #e8e1d3 0 75%, #faf7f0 0);
+    background-size: 16px 16px;
+  }
+}
