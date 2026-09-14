@@ -1,4 +1,4 @@
-# myStylist — AI Personal Stylist / Digital Wardrobe (MVP)
+# myStylist — Digital Wardrobe
 
 > Know your wardrobe. Understand your style. Dress better.
 
