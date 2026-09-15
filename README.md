@@ -95,4 +95,4 @@ See `.env.example`.
 
 ## License
 
-(Unspecified — add a LICENSE file if you plan to open-source this project)
+MIT
