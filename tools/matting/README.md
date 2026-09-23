@@ -1,22 +1,27 @@
-# Matting service (GroundingDINO + SAM2)
+# Matting service (GroundingDINO + RMBG-1.4, SAM2 fallback)
 
 Local Python sidecar that cuts clothing out of photos:
 
 1. **GroundingDINO-tiny** (official IDEA-Research weights, run via transformers —
    the official repo needs a CUDA-toolkit compile which is not required here)
    detects the clothing region and returns a bounding box.
-2. **SAM2-tiny** (official facebookresearch/sam2-hiera-tiny weights) turns the
-   box into a precise mask (3 candidates scored by coverage/model score/area).
-3. The mask is exported as a **green overlay PNG at the ORIGINAL photo
+2. **BRIA RMBG-1.4** (primary background-removal model, run via transformers
+   remote code) separates the garment inside the DINO-box ROI crop from the
+   background. Tuned for e-commerce photos — white-on-white, lighting
+   highlights, thin straps, blurry edges.
+3. **SAM2-tiny** (official facebookresearch/sam2-hiera-tiny weights) is kept as
+   an **optional fallback** for failed RMBG results (empty mask, mask that
+   looks like the background, or a frame-sized slab).
+4. The mask is exported as a **green overlay PNG at the ORIGINAL photo
    resolution** (RGB = green tint, alpha = keep region) to `public/uploads/`.
    The final 512×512 transparent cutout is computed **client-side** by
    `src/components/ui/CutoutEditor.tsx` (crop → scale → centre), so the
    browser editor can paint/erase on the mask before cutting.
 
-If the local pipeline fails, the service still streams
-`{"stage":"manual"}` with an empty-mask overlay — the browser falls back to
-manual painting on the original photo. If the service itself is unreachable,
-the frontend switches to the same manual mode automatically.
+If both segments fail, the service still streams `{"stage":"manual"}` with an
+empty-mask overlay — the browser falls back to manual painting on the original
+photo. If the service itself is unreachable, the frontend switches to the same
+manual mode automatically.
 
 ## Start (one command)
 
@@ -28,15 +33,21 @@ First run: creates `.venv`, installs torch (~2.5GB), downloads models
 (~800MB via hf-mirror), then serves `http://127.0.0.1:8001`.
 Set `HF_ENDPOINT=https://hf-mirror.com` before first run on China networks.
 
+> RMBG-1.4 ships its model as **remote code** (`trust_remote_code=True`) written
+> against the transformers **v4** line — loading it under v5 raises
+> `'BriaRMBG' object has no attribute 'all_tied_weights_keys'`. `requirements.txt`
+> therefore pins `transformers>=4.39.1,<5` (GroundingDINO runs fine on v4 too;
+> the matting venv is isolated from the web app).
+
 ## Device tiers (auto)
 
 The service picks the best working tier at startup and prints it:
 
-| tier  | DINO      | SAM2      | speed     |
-|-------|-----------|-----------|-----------|
-| gpu   | CUDA fp32 | CUDA      | seconds   |
-| mixed | CPU       | CUDA      | ~5-10s    |
-| cpu   | CPU       | CPU       | ~15-30s   |
+| tier  | DINO      | RMBG-1.4  | SAM2 (fallback) | speed     |
+|-------|-----------|-----------|-----------------|-----------|
+| gpu   | CUDA fp32 | CUDA      | CUDA            | seconds   |
+| mixed | CPU       | CUDA      | loaded          | ~5-10s    |
+| cpu   | CPU       | CPU       | loaded          | ~15-30s   |
 
 `run.bat` auto-detects an NVIDIA GPU (`nvidia-smi`) and installs the CUDA
 torch wheels from the SJTU wheel index when present — otherwise it keeps the

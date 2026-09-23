@@ -27,7 +27,7 @@ if "%errorlevel%"=="0" (
     echo [2/4] No NVIDIA GPU - keeping CPU torch (15-30s per photo).
 )
 
-echo [3/4] Downloading models (GroundingDINO-tiny + SAM2-tiny)...
+echo [3/4] Downloading models (GroundingDINO-tiny + RMBG-1.4 + SAM2-tiny)...
 set HF_ENDPOINT=https://hf-mirror.com
 python download-models.py
 
