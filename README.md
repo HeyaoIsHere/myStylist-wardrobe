@@ -299,4 +299,4 @@ Copy `.env.example` to `.env` and edit as needed.
 
 ## License
 
-(Unspecified — add a LICENSE file if you plan to open-source this project)
+MIT
