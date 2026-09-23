@@ -30,8 +30,7 @@ tools\matting\run.bat
 ```
 
 First run: creates `.venv`, installs torch (~2.5GB), downloads models
-(~800MB via hf-mirror), then serves `http://127.0.0.1:8001`.
-Set `HF_ENDPOINT=https://hf-mirror.com` before first run on China networks.
+(~1GB via hf-mirror, the default endpoint), then serves `http://127.0.0.1:8001`.
 
 > RMBG-1.4 ships its model as **remote code** (`trust_remote_code=True`) written
 > against the transformers **v4** line — loading it under v5 raises

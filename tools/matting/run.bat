@@ -1,6 +1,6 @@
 @echo off
 rem One-shot setup + start for the matting service (Windows).
-rem First run downloads torch (~2.5GB) and model weights (~800MB) — be patient.
+rem First run downloads torch (~2.5GB) and model weights (~1GB) — be patient.
 rem On machines with an NVIDIA GPU the CUDA wheels are installed automatically
 rem (~3s per photo); without one the service runs on CPU (15-30s per photo).
 cd /d "%~dp0"
@@ -24,7 +24,7 @@ if "%errorlevel%"=="0" (
     echo [2/4] NVIDIA GPU found - installing CUDA torch wheels...
     pip install "torch==2.14.0+cu126" "torchvision==0.29.0+cu126" --index-url https://mirror.sjtu.edu.cn/pytorch-wheels/cu126
 ) else (
-    echo [2/4] No NVIDIA GPU - keeping CPU torch (15-30s per photo).
+    echo [2/4] No NVIDIA GPU - keeping CPU torch, 15-30s per photo.
 )
 
 echo [3/4] Downloading models (GroundingDINO-tiny + RMBG-1.4 + SAM2-tiny)...
