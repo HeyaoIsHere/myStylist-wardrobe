@@ -1,20 +1,23 @@
-"""Matting service — GroundingDINO + SAM2 clothing cutout.
+"""Matting service — GroundingDINO + BRIA RMBG-1.4 clothing cutout.
 
 Pipeline per request:
   1. GroundingDINO-tiny detects the clothing region (shirt / pants / dress /
      jacket / shoes / …) and returns the best bounding box.
-  2. SAM2-tiny turns that box into a precise mask.
-  3. The mask strips the background; the garment is cropped to its opaque
-     bounds, scaled keeping aspect ratio, centred on a 512×512 transparent
-     canvas, and saved as public/uploads/<uuid>.png (served at /uploads/…).
+  2. RMBG-1.4 (background-removal model, run via transformers remote code)
+     separates the garment inside the ROI crop from the background — tuned
+     for e-commerce photos (white-on-white, lighting highlights, thin straps).
+  3. SAM2-tiny is kept as an OPTIONAL fallback for failed RMBG results.
+  4. The mask strips the background; the garment stays on a green overlay at
+     ORIGINAL resolution (RGB = green tint, alpha = keep mask). The final
+     512×512 transparent cutout is computed client-side by the browser.
 
 Responses to POST /matting are NDJSON lines so the UI can render live
 progress: {"stage":"detect"} → {"stage":"mask"} → {"stage":"normalize"}
 → {"stage":"done","url":…,"categoryHint":…} | {"stage":"error","message":…}
 
 Device tiers (RTX 3050 Laptop 4GB, auto-selected at startup):
-  1. both models on CUDA (fp16)
-  2. DINO falls back to CPU when VRAM is tight, SAM2 stays on CUDA
+  1. models on CUDA
+  2. individual models fall back to CPU when VRAM is tight
   3. everything on CPU (slow but always works)
 """
 import base64
@@ -39,7 +42,12 @@ MODELS_DIR = Path(os.environ.get("MYSTYLIST_MODELS_DIR", ROOT / "tools" / "matti
 UPLOAD_DIR = Path(os.environ.get("MYSTYLIST_UPLOAD_DIR", ROOT / "public" / "uploads"))
 
 DINO_DIR = MODELS_DIR / "grounding-dino-tiny"
+RMBG_DIR = MODELS_DIR / "rmbg-1.4"
 SAM2_CKPT = MODELS_DIR / "sam2" / "sam2_hiera_tiny.pt"
+
+RMBG_INPUT = 1024   # RMBG-1.4's native input resolution (square)
+ROI_MARGIN = 0.12   # expand the DINO box by this fraction when cropping the ROI
+                    # — thin straps/edges must not be cut off before RMBG runs
 
 # Short prompt on purpose: GroundingDINO-tiny's box quality drops with long
 # label lists (a 34-phrase prompt measurably worsened boxes in testing).
@@ -127,13 +135,65 @@ def load_models():
         state["dino_device"] = "cpu"
         state["dino_fp16"] = False
 
-    # 2) SAM2-tiny (official facebookresearch/sam2 weights via the sam2 package)
-    from sam2.build_sam import build_sam2
-    from sam2.sam2_image_predictor import SAM2ImagePredictor
+    # 2) BRIA RMBG-1.4 — PRIMARY background removal (e-commerce tuned).
+    # The repo ships remote code (modeling_rmbg.py) written for the
+    # transformers v4 line — requirements.txt pins `transformers<5` and the
+    # model directory is pre-downloaded by download-models.py.
+    from transformers import AutoModelForImageSegmentation
 
-    sam_device = "cuda" if cuda else "cpu"
     try:
-        model = build_sam2("configs/sam2/sam2_hiera_t.yaml", checkpoint=str(SAM2_CKPT), device=sam_device, mode="eval")
+        state["rmbg"] = AutoModelForImageSegmentation.from_pretrained(
+            str(RMBG_DIR), trust_remote_code=True
+        )
+        state["rmbg"].to("cuda" if cuda else "cpu").eval()
+        state["rmbg_device"] = "cuda" if cuda else "cpu"
+        print(f"[matting] RMBG-1.4 loaded on {state['rmbg_device']}")
+    except (RuntimeError, torch.cuda.OutOfMemoryError, OSError) as e:
+        # Missing weights or a broken load must NOT kill the service — the
+        # SAM2 fallback lane still works. Re-raise later at request time.
+        print(f"[matting] RMBG-1.4 load failed ({e!r}) — falling back to SAM2 only")
+        state["rmbg"] = None
+        state["rmbg_device"] = "none"
+
+    # 3) SAM2-tiny — OPTIONAL fallback for failed RMBG results. NOT loaded at
+    # startup: on a 4GB laptop GPU holding DINO + RMBG + SAM2 at once is what
+    # gets processes killed under memory pressure. ensure_sam() loads it on
+    # the first fallback request instead (~5s, once).
+    state["sam"] = None
+    state["sam_model"] = None  # kept for the automatic mask fallback
+    state["sam_device"] = "cuda" if cuda else "cpu"  # intended device
+
+    tier = (
+        "gpu"
+        if state["dino_device"] == "cuda" and state["rmbg_device"] == "cuda"
+        else "mixed"
+        if "cuda" in (state["dino_device"], state["rmbg_device"])
+        else "cpu"
+    )
+    state["tier"] = tier
+    print(f"[matting] models ready — tier: {tier} "
+          f"(dino={state['dino_device']}, rmbg={state['rmbg_device']}, "
+          f"sam2=lazy-fallback)")
+
+
+def ensure_sam() -> bool:
+    """Lazy-load SAM2 for the fallback lane. Returns True when usable."""
+    if state.get("sam") is not None:
+        return True
+    if state.get("sam_device") == "none":
+        return False  # a previous load attempt failed hard — don't retry
+    try:
+        from sam2.build_sam import build_sam2
+        from sam2.sam2_image_predictor import SAM2ImagePredictor
+
+        try:
+            model = build_sam2("configs/sam2/sam2_hiera_t.yaml", checkpoint=str(SAM2_CKPT),
+                               device=state["sam_device"], mode="eval")
+        except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
+            print(f"[matting] SAM2 GPU load failed ({e}) — falling back to CPU")
+            state["sam_device"] = "cpu"
+            model = build_sam2("configs/sam2/sam2_hiera_t.yaml", checkpoint=str(SAM2_CKPT),
+                               device="cpu", mode="eval")
         # fp16 SAM2 convs are non-deterministic run-to-run (same file as DINO);
         # force fp32 so a given photo yields an identical mask every startup.
         _set_fp16 = getattr(model, "set_use_float16", None)
@@ -143,25 +203,15 @@ def load_models():
             except Exception:
                 pass
         state["sam"] = SAM2ImagePredictor(model)
-        state["sam_model"] = model  # kept for the automatic mask fallback
-        state["sam_device"] = sam_device
-    except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
-        print(f"[matting] SAM2 GPU load failed ({e}) — falling back to CPU")
-        model = build_sam2("configs/sam2/sam2_hiera_t.yaml", checkpoint=str(SAM2_CKPT), device="cpu", mode="eval")
-        state["sam"] = SAM2ImagePredictor(model)
         state["sam_model"] = model
-        state["sam_device"] = "cpu"
-
-    tier = (
-        "gpu"
-        if state["dino_device"] == "cuda" and state["sam_device"] == "cuda"
-        else "mixed"
-        if "cuda" in (state["dino_device"], state["sam_device"])
-        else "cpu"
-    )
-    state["tier"] = tier
-    print(f"[matting] models ready — tier: {tier} "
-          f"(dino={state['dino_device']}, sam2={state['sam_device']})")
+        print(f"[matting] SAM2 lazy-loaded on {state['sam_device']}")
+        return True
+    except Exception as e:
+        print(f"[matting] SAM2 load failed ({e!r}) — disabled")
+        state["sam"] = None
+        state["sam_model"] = None
+        state["sam_device"] = "none"
+        return False
 
 
 @asynccontextmanager
@@ -754,7 +804,85 @@ def enhance_contrast(img_arr):
     return np.clip(f + detail[..., None] * 2.2, 0, 255).astype(np.uint8)
 
 
-def cut_out(img: Image.Image, box, category):
+def cut_out_rmbg(img: Image.Image, box, category):
+    """RMBG-1.4 → soft (anti-aliased) alpha mask, at ORIGINAL photo resolution.
+
+    Primary segmentation path. The DINO box is expanded to a ROI crop (thin
+    straps/edges must not be cut off), RMBG separates the foreground inside
+    that crop, and the mask is pasted back into full-frame coordinates so the
+    green-overlay contract keeps working. Returns (soft_alpha, bool_ok) —
+    ok=False when RMBG did not produce a usable garment mask (caller falls
+    back to SAM2)."""
+    rmbg = state.get("rmbg")
+    if rmbg is None:
+        return None, False
+    w, h = img.width, img.height
+    img_arr = np.asarray(img.convert("RGB"), dtype=np.uint8)
+    x1, y1, x2, y2 = box
+    bw, bh = max(1.0, x2 - x1), max(1.0, y2 - y1)
+    m = max(ROI_MARGIN * bw, ROI_MARGIN * bh)
+    rx0, ry0 = max(0, int(x1 - m)), max(0, int(y1 - m))
+    rx1, ry1 = min(w, int(x2 + m)), min(h, int(y2 + m))
+    if rx1 <= rx0 or ry1 <= ry0:
+        return None, False
+    roi = img_arr[ry0:ry1, rx0:rx1]
+    rw, rh = rx1 - rx0, ry1 - ry0
+
+    # Preprocess: square-resize to RMBG's native input, normalize like the
+    # official model card ([0.5,0.5,0.5] mean, std 1.0).
+    pil_roi = Image.fromarray(roi).resize((RMBG_INPUT, RMBG_INPUT), Image.BILINEAR)
+    t = np.asarray(pil_roi, dtype=np.float32) / 255.0
+    t = torch.tensor(t).permute(2, 0, 1)[None]
+    t = (t - 0.5) / 1.0
+    t = t.to(state["rmbg_device"])
+    try:
+        with torch.no_grad():
+            out = rmbg(t)
+    except RuntimeError as e:
+        print(f"[rmbg] inference failed ({e!r}) — SAM2 fallback")
+        return None, False
+    # The model returns logits in [0,1] (sigmoid applied inside remote code);
+    # the official postprocess additionally min-max normalizes to [0,1].
+    prob = out[0][0] if isinstance(out, (tuple, list)) else out
+    prob = torch.squeeze(prob, 0) if prob.dim() == 3 else prob
+    if prob.dim() == 2:
+        prob = prob[None, None]
+    prob = torch.nn.functional.interpolate(
+        prob, size=(rh, rw), mode="bilinear", align_corners=False
+    )[0, 0]
+    pm = float(prob.min())
+    pM = float(prob.max())
+    if pM - pm < 1e-6:
+        print("[rmbg] flat output — SAM2 fallback")
+        return None, False
+    prob = (prob - pm) / (pM - pm)
+    bin_mask = (prob > 0.5).cpu().numpy().astype(bool)
+
+    # Paste the ROI-size binary mask back into full-frame coordinates.
+    frame = np.zeros((h, w), dtype=bool)
+    frame[ry0:ry1, rx0:rx1] = bin_mask
+
+    # Health gate — a low-fraction frame mask that LOOKS like the border
+    # background is not a garment.
+    frac = float(frame.mean())
+    if frac <= 0.001 or frac >= 0.90:
+        print(f"[rmbg] unusable mask frac={frac:.3f} — SAM2 fallback")
+        return None, False
+    if mask_looks_like_background(img_arr, frame):
+        print("[rmbg] mask looks like background — SAM2 fallback")
+        return None, False
+
+    # Clean + soft edge, same treatment the SAM2 lane applies.
+    cleaned = clean_mask(frame)
+    if cleaned is None:
+        print("[rmbg] no clean garment mask — SAM2 fallback")
+        return None, False
+    alpha = feather_mask(cleaned.astype(np.float32), sigma=1.0)
+    print(f"[rmbg] ok frac={frac:.3f} roi={rw}x{rh} rx={rx0},{ry0}")
+    return np.asarray(alpha, dtype=np.float32), True
+
+
+def cut_out_sam2(img: Image.Image, box, category):
     """SAM2 → soft (anti-aliased) alpha mask, at ORIGINAL photo resolution.
 
     Chain: (1) box + positive/negative point prompts, garment-shaped mask
@@ -876,6 +1004,23 @@ def cut_out(img: Image.Image, box, category):
     return np.asarray(alpha, dtype=np.float32)
 
 
+def cut_out(img: Image.Image, box, category):
+    """Dispatcher: RMBG-1.4 first, SAM2 as fallback for failed results.
+
+    Both produce a soft 0..1 alpha at ORIGINAL photo resolution (the green
+    overlay + client-side 512 cutout keep working). RMBG is the primary for
+    e-commerce photos; only when it returns an unusable mask does the SAM2
+    lane (box/point prompts + low-contrast retry) take over."""
+    if state.get("rmbg") is not None:
+        alpha, ok = cut_out_rmbg(img, box, category)
+        if ok:
+            return alpha
+    if not ensure_sam():
+        raise MattingError("no segmentation model available")
+    print("[cutout] RMBG fallback → SAM2")
+    return cut_out_sam2(img, box, category)
+
+
 def normalize_cutout(out: Image.Image, source: Image.Image | None = None) -> Image.Image:
     """Crop the transparent margins (small padding kept), fit inside the
     512 canvas keeping aspect ratio, centre. When `source` (the original
@@ -976,7 +1121,10 @@ async def matting(request: Request, body: dict):
             overlay[..., 2] = 113
             overlay[..., 3] = np.clip(mask * 255.0, 0, 255).astype(np.uint8)
             Image.fromarray(overlay).save(UPLOAD_DIR / fname)
-            if state.get("sam_device") == "cuda":
+            # return inference scratch VRAM to the driver after EVERY request —
+            # on a 4GB laptop GPU the 1024² RMBG activations are the largest
+            # transient allocation, and leftovers OOM the next photo
+            if "cuda" in (state.get("dino_device"), state.get("rmbg_device"), state.get("sam_device")):
                 torch.cuda.empty_cache()
             yield line({
                 "stage": stage_out,

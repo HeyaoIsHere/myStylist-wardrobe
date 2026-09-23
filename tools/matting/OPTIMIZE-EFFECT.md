@@ -309,3 +309,50 @@ cd tools/matting
 .venv/Scripts/python.exe -u _batch_diag.py      # 53 张体检 → _batch.json
 .venv/Scripts/python.exe -u _verify_fix.py      # 合成图确定性验证
 ```
+
+---
+
+## 6. 管线重构：RMBG-1.4 主分割 + SAM2 后备（2026-09-23）
+
+> 任务来源：SAM2 对电商图不稳定（白底白件、高光、细带、边缘模糊、背景并入）。
+> 方案（用户指定）：保留 GroundingDINO 定位；**BRIA RMBG-1.4** 为分割主模型；
+> SAM2 降级为 RMBG 失败时的后备；前端 overlay/手动画笔协议不变。
+
+### 新管线
+
+```
+DINO bbox → ROI 裁剪（box 外扩 12%，clamp）→ RMBG-1.4（1024×1024，remote code）
+  → sigmoid 图 min-max 归一 → 阈值 0.5 → clean_mask + feather(σ=1.0)
+  → 按 ROI 偏移回放全图坐标（overlay 契约要求原分辨率）
+健康门：空 mask / frac≥0.90 / 颜色≈边框背景 → 走 cut_out_sam2()
+```
+
+### 关键事实（实测确认）
+
+- **forward 内部已做 sigmoid**（`briarmbg.py` 返回 `F.sigmoid(d1..d6)`），
+  `out[0][0]` 形状 `(1,1,1024,1024)`、值域 [0,1]；模型卡的 min-max 归一照抄即可。
+- **transformers 必须锁 v4 线**（`>=4.39.1,<5`）：RMBG remote code 在 v5 上加载报
+  `'BriaRMBG' object has no attribute 'all_tied_weights_keys'`。当前 venv：4.57.6 + hub 0.36.2。
+- **下载脚本改为纯 HTTP 直链**（urllib，跟随重定向）：hf-mirror 的 Xet 存储 LFS 响应
+  会被 hub<1.0 的元数据校验拒绝（`Distant resource does not seem to be on huggingface.co`），
+  DINO 仓库同样 Xet 化，新机器装 DINO 也会踩；直链下载绕开全部元数据检查。
+  只取 `config.json / MyConfig.py / briarmbg.py / preprocessor_config.json / model.safetensors`，
+  不再下 model.pth / pytorch_model.bin / onnx。
+
+### 实测（合成深蓝 T 恤 900×1100，两次请求）
+
+```
+[cutout] box=[165, 198, 736, 768] label=jacket cat=outerwear
+[rmbg] ok frac=0.207 roi=708x707 rx=96,129
+overlay 字节级一致: e10158c72520 == e10158c72520（确定性成立）
+cover_frac=0.207（真实衣物占帧 ~0.208，像素级吻合）
+soft_edge_px=9658 (0.98%)  opaque=19.7%  bg=78.7%
+单模型冒烟：mask bbox (250,160,650,900) == 合成衣物真实边界（像素级）
+后备路径：state['rmbg']=None → 日志 "RMBG fallback → SAM2"，mask frac=0.2142 正常
+```
+
+### 遗留观察点
+
+- RMBG 对 DINO 框内多物件（成对鞋、套装）按整块前景处理，原 `merge_shoe_pair`
+  逻辑只活在 SAM2 后备路径里；若真实鞋类图出现「只切一只」，先看 RMBG mask 是否完整。
+- 真实电商图（白底浅色件）需在浏览器回验：绿色 mask 贴合度、白底不并块、细带保留。

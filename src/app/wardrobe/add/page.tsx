@@ -158,7 +158,7 @@ export default function AddItemPage() {
         </div>
       )}
 
-      {/* — step 2: auto matting (GroundingDINO + SAM2) + manual repair — */}
+      {/* — step 2: auto matting (GroundingDINO + RMBG-1.4, SAM2 fallback) + manual repair — */}
       {photo && !image && (
         <MattingEditor
           src={photo}

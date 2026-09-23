@@ -5,7 +5,7 @@ import { useI18n } from "@/i18n/LanguageProvider";
 import type { Category } from "@/lib/types";
 import { CutoutEditor } from "@/components/ui/CutoutEditor";
 
-/** Local Python matting service (GroundingDINO + SAM2). */
+/** Local Python matting service (GroundingDINO + RMBG-1.4, SAM2 fallback). */
 const MATTING_URL = process.env.NEXT_PUBLIC_MATTING_URL ?? "http://localhost:8001";
 
 interface MattingEditorProps {
