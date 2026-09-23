@@ -227,6 +227,7 @@ export const en = {
     inspo: "Inspiration Board",
     inspoSub: "Moods you want to live in",
     upload: "Add inspiration",
+    uploadHint: "Photo, clipping, moment — the mock AI reads the mood",
     empty: "No inspiration yet",
     emptyHint: "Add a few images and we'll map your taste",
     basedOn: "Learned from {n} pieces",
