@@ -68,9 +68,16 @@ Requires Python ≥ 3.10. One command on Windows:
 tools\matting\run.bat
 ```
 
-On first run it: creates `.venv` → installs dependencies (torch ~2.5GB) → downloads model weights (~800MB) → serves `http://127.0.0.1:8001`.
+On first run it: creates `.venv` → installs dependencies (torch ~2.5GB) → downloads model weights (~1GB) → serves `http://127.0.0.1:8001`. Model downloads default to the HF mirror, so no extra setup is needed on China networks.
 
-- **China networks**: set `set HF_ENDPOINT=https://hf-mirror.com` before running to download models via the HF mirror.
+**macOS / Linux** (no one-click script — start it manually):
+
+```bash
+python -m venv tools/matting/.venv
+tools/matting/.venv/bin/pip install -r tools/matting/requirements.txt
+tools/matting/.venv/bin/python -m uvicorn service:app --app-dir tools/matting --host 0.0.0.0 --port 8001
+```
+
 - **GPU acceleration**: `run.bat` auto-detects an NVIDIA GPU and installs CUDA torch wheels from the SJTU wheel index; without a GPU it keeps CPU torch (slower, ~15–30s per photo).
 - **The app works without this service**: after uploading, it automatically falls back to manual painting mode — brush over the part to keep.
 
@@ -112,7 +119,7 @@ sticker is computed **client-side** — the server only ever produces the mask.
 handles the hard cases in wardrobe photos far more reliably — white garment on
 white background, studio highlights, thin straps, blurry edges. SAM2 remains as
 a safety net. Model weights download on first run (`download-models.py`,
-~800MB); details, API, and smoke tests in [`tools/matting/README.md`](tools/matting/README.md).
+~1GB); details, API, and smoke tests in [`tools/matting/README.md`](tools/matting/README.md).
 
 ---
 
