@@ -6,7 +6,6 @@ export const en = {
     home: "Home",
     wardrobe: "Wardrobe",
     stylist: "AI Stylist",
-    agent: "Agent Test",
     style: "My Style",
     profile: "Profile",
   },

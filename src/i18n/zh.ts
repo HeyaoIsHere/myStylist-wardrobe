@@ -8,7 +8,6 @@ export const zh: Dict = {
     home: "首页",
     wardrobe: "衣橱",
     stylist: "AI 造型师",
-    agent: "Agent 测试",
     style: "我的风格",
     profile: "我的",
   },

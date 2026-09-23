@@ -2,7 +2,7 @@
 
 > Know your wardrobe. Understand your style. Dress better.
 
-A self-hosted digital wardrobe + outfit sticker-board app with an AI outfit-planning agent. Upload photos of your own clothes, the AI cuts them out (GroundingDINO + SAM2), each piece becomes a transparent sticker, and you can freely compose outfits — or let the Agent plan them for you. Bilingual UI (Chinese / English).
+A self-hosted digital wardrobe + outfit sticker-board app with an AI outfit-planning agent. Upload photos of your own clothes, the AI cuts them out (GroundingDINO + BRIA RMBG-1.4), each piece becomes a transparent sticker, and you can freely compose outfits — or let the Agent plan them for you. Bilingual UI (Chinese / English).
 
 ![demo](demo.gif)
 
@@ -11,18 +11,18 @@ A self-hosted digital wardrobe + outfit sticker-board app with an AI outfit-plan
 | Feature | Description |
 |---|---|
 | Digital wardrobe | Upload clothing photos, local AI matting (detect → mask → mask editor), save with name + category |
-| Smart cut-out | Local Python service (GroundingDINO-tiny + SAM2-tiny) with live progress stream; falls back to manual painting when the service is unavailable |
+| Smart cut-out | Local Python service (GroundingDINO-tiny detection + BRIA RMBG-1.4 background removal, SAM2-tiny kept as fallback) with live progress stream; falls back to manual painting when the service is unavailable |
 | Mask editor | Meitu-style green mask: brush / eraser / undo / redo, adjustable brush size |
 | Sticker board | `/stylist` — wardrobe on the left (search, delete), board on the right: drag, resize, rotate (snaps to 45°), save outfits |
 | Saved outfits | Profile shows the 3 most recent, `/profile/saved` shows all, with delete |
-| **AI Outfit Agent** | `/agent` — conversational outfit planner. Describe what you need (occasion, weather, mood) and the agent searches your wardrobe, composes looks, and validates them before answering |
+| **AI Outfit Agent** | Headless planner at `POST /api/agent/recommend`. Describe what you need (occasion, weather, mood) and the agent searches your wardrobe, composes looks, and validates them before answering |
 | Bilingual | 中文 / English, driven by the `lang` cookie |
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (App Router, Turbopack) + React 19 + Tailwind CSS v4 + TypeScript
 - **Data**: JSON file store (`data/store.json`, auto-created and auto-migrated at runtime), no external database
-- **AI matting**: Python + FastAPI sidecar (`tools/matting/`), GroundingDINO-tiny + SAM2-tiny; GPU (CUDA) optional, CPU-only works too
+- **AI matting**: Python + FastAPI sidecar (`tools/matting/`), GroundingDINO-tiny + BRIA RMBG-1.4 (SAM2-tiny fallback); GPU (CUDA) optional, CPU-only works too
 - **AI Agent**: Bounded tool-use agent orchestrating retrieval → composition → validation, with a deterministic policy (offline) or LLM decision layer (DeepSeek / OpenAI-compatible)
 - **Embeddings**: Local (deterministic, offline, zero keys) or OpenAI-compatible hosted endpoint
 
@@ -36,9 +36,9 @@ The project has **three services**, but two of them run inside the Next.js proce
 
 | Service | Where it runs | Port | Purpose |
 |---|---|---|---|
-| **Next.js Web App** | Node.js (frontend + API routes) | `3000` | The website, wardrobe CRUD, sticker board, Agent UI, recommend API, retrieval API, metadata API |
+| **Next.js Web App** | Node.js (frontend + API routes) | `3000` | The website, wardrobe CRUD, sticker board, recommend API, retrieval API, metadata API |
 | **Agent API** | Inside Next.js (server-side) | same 3000 | `/api/agent/recommend` — the agent runs in-process, no separate server needed |
-| **Matting Service** | Python FastAPI sidecar | `8001` | `/matting` — AI clothing cut-out (GroundingDINO + SAM2). Optional — the app falls back to manual painting when it's down |
+| **Matting Service** | Python FastAPI sidecar | `8001` | `/matting` — AI clothing cut-out (GroundingDINO + RMBG-1.4). Optional — the app falls back to manual painting when it's down |
 
 ---
 
@@ -53,7 +53,7 @@ npm run dev      # → http://localhost:3000
 
 On first launch, `data/` and `public/uploads/` are created automatically. The wardrobe starts empty — upload your own clothes to get going.
 
-The Agent API is available at `POST /api/agent/recommend` and the test panel at `/agent`.
+The Agent API is available at `POST /api/agent/recommend` (headless — call it with any HTTP client).
 
 ---
 
@@ -99,7 +99,6 @@ npm run dev
 
 # Open in browser
 #  http://localhost:3000          — home
-#  http://localhost:3000/agent    — AI outfit agent panel
 #  http://localhost:3000/stylist  — sticker board
 ```
 
@@ -161,7 +160,7 @@ Returns a structured result with items, validation outcome, trace, and token usa
 
 ### Try it
 
-Open http://localhost:3000/agent — the test panel lets you type a request and see the agent's trace, validation results, and recommended outfit live.
+Call `POST /api/agent/recommend` with a JSON body (see the request example above) — the response contains the agent's trace, validation results, and the recommended outfit.
 
 ---
 
@@ -195,7 +194,6 @@ Copy `.env.example` to `.env` and edit as needed.
 ├── src/
 │   ├── app/                              # Next.js App Router pages + API routes
 │   │   ├── page.tsx                      # / home
-│   │   ├── agent/                        # /agent — AI outfit agent test panel
 │   │   ├── stylist/                      # /stylist — wardrobe + sticker board
 │   │   ├── wardrobe/                     # /wardrobe/add (upload + matting), /wardrobe/[id]
 │   │   ├── profile/                      # /profile, /profile/saved
@@ -240,7 +238,7 @@ Copy `.env.example` to `.env` and edit as needed.
 │       └── types.ts                      # Shared data models
 ├── tools/
 │   └── matting/                          # AI matting Python service
-│       ├── service.py                    # FastAPI app (GroundingDINO + SAM2)
+│       ├── service.py                    # FastAPI app (GroundingDINO + RMBG-1.4, SAM2 fallback)
 │       ├── download-models.py            # Model weight downloader
 │       ├── requirements.txt              # Python dependencies
 │       └── run.bat                       # Windows one-click starter
