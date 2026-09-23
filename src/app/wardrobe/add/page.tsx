@@ -144,7 +144,7 @@ export default function AddItemPage() {
         </div>
       )}
 
-      {/* — step 2: auto matting (GroundingDINO + SAM2) + manual repair — */}
+      {/* — step 2: auto matting (GroundingDINO + RMBG-1.4, SAM2 fallback) + manual repair — */}
       {photo && !image && (
         <MattingEditor
           src={photo}
@@ -159,7 +159,7 @@ export default function AddItemPage() {
         <div className="grid gap-8 md:grid-cols-[minmax(0,460px)_1fr]">
           <div>
             <div className="checker hairline aspect-[3/4] w-full max-w-[460px] overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element — cutout result */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- cutout result */}
               <img src={image} alt={name || "item"} className="h-full w-full object-contain" />
             </div>
             <div className="mt-3 flex max-w-[460px] items-center justify-between">

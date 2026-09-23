@@ -61,3 +61,13 @@ __pycache__/
 
 # tunnel binary
 /tools/cloudflared.exe
+
+# Phase 5 evaluation artifacts (generated, never committed)
+/scripts/eval/out/
+
+# matting service — scratch / diagnostic files (underscore-prefixed, never committed)
+/tools/matting/_*
+
+# design docs and working notes (kept local, not part of the repo)
+/docs/
+AI_ENGINEERING.md

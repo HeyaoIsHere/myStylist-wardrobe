@@ -3,7 +3,10 @@
 # (the service falls back to CPU automatically if CUDA runs out of memory).
 torch>=2.5.1
 torchvision>=0.20.1
-transformers>=5.17
+# RMBG-1.4 ships remote code written against the transformers v4 line
+# (loading it under v5 raises e.g. 'all_tied_weights_keys' AttributeError).
+# DINO (transformers) runs fine on v4 too — the matting venv is isolated.
+transformers>=4.39.1,<5
 sam2
 fastapi
 uvicorn[standard]
