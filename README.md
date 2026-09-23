@@ -104,6 +104,46 @@ npm run dev
 
 ---
 
+## AI Matting Pipeline
+
+Clothing cut-out runs **100% locally** — no cloud APIs, no image generation; real garment pixels only. The photo goes through four stages in the Python sidecar (`tools/matting/service.py`):
+
+```
+photo
+  ↓  1. GroundingDINO-tiny   — open-vocabulary detection → garment bounding box
+  ↓  2. ROI crop             — box padded by 12% (clamped to frame) → 1024×1024
+  ↓  3. BRIA RMBG-1.4        — foreground/background separation → soft alpha mask
+  ↓  4. Health gates         — failed masks trigger the SAM2-tiny fallback
+  ↓  green overlay PNG (original resolution) streamed to the browser
+  ↓  user brushes in/out in the mask editor → client-side 512×512 sticker
+```
+
+1. **Detect** — GroundingDINO-tiny (via transformers) finds the garment and returns
+   the best bounding box plus a category hint (e.g. `tops`) used to pre-fill the
+   upload form.
+2. **Crop** — the box is padded 12% on every side so thin straps and soft edges
+   survive, then resized to the model's native 1024×1024 input.
+3. **Segment** — BRIA RMBG-1.4 produces a soft alpha mask, which is thresholded,
+   cleaned, feathered, and pasted back into full-photo coordinates.
+4. **Verify & fall back** — the mask must pass health gates (non-empty, not the
+   whole frame, colors must not match the border background). Failures trigger
+   the **SAM2-tiny fallback** (lazy-loaded only on demand). If both models fail
+   — or the service is down entirely — the browser switches to **manual
+   painting**, so an upload never hard-fails.
+
+The result streams to the browser as a **green overlay PNG at the original photo
+resolution** (green = keep region, NDJSON progress stages). The user can brush
+in/out in the mask editor (`CutoutEditor`), and the final 512×512 transparent
+sticker is computed **client-side** — the server only ever produces the mask.
+
+**Why RMBG-1.4 over pure SAM2:** RMBG is trained for e-commerce imagery and
+handles the hard cases in wardrobe photos far more reliably — white garment on
+white background, studio highlights, thin straps, blurry edges. SAM2 remains as
+a safety net. Model weights download on first run (`download-models.py`,
+~800MB); details, API, and smoke tests in [`tools/matting/README.md`](tools/matting/README.md).
+
+---
+
 ## AI Outfit Agent
 
 The agent is a **bounded tool-use outfit planner**. Given a natural-language request (e.g. "I need something for a rainy office day"), it searches your wardrobe, composes a look, validates it, and returns a grounded result — never inventing clothes you don't own.
@@ -265,7 +305,6 @@ Copy `.env.example` to `.env` and edit as needed.
 | `src/lib/agent/schema.ts` | Zod validation for every tool's input |
 | `src/lib/agent/prompt.ts` | System prompt for LLM decision mode |
 | `src/app/api/agent/recommend/route.ts` | HTTP endpoint |
-| `src/app/agent/page.tsx` + `AgentPanel.tsx` | Web UI test panel |
 
 ---
 
