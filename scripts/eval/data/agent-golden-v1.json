@@ -1,0 +1,94 @@
+{
+  "schemaName": "mystylist-agent-eval-golden",
+  "schemaVersion": "1",
+  "description": "Phase 6 agent golden set — exact tool trajectories of the deterministic mock policy over the shared eval catalog (18 items, no bags, one weather-mismatched shoe s3). Under --provider mock these trajectories are FIXED; under the LLM decision layer the same cases run but the trajectory assertion is relaxed.",
+  "cases": [
+    {
+      "id": "agent-normal-01",
+      "lang": "en",
+      "tags": ["normal"],
+      "query": "I need a black turtleneck with jeans for winter",
+      "note": "Happy path: search → compose → validate → finish success. Weather/prefs never warranted.",
+      "expected": {
+        "hard": { "categories": ["tops", "bottoms"], "colors": ["black"], "seasons": ["winter"] },
+        "trajectory": ["search_wardrobe", "generate_outfit", "validate_outfit", "finish"],
+        "termination": "valid-outfit",
+        "ok": true,
+        "relevantIds": ["t2", "b2"]
+      }
+    },
+    {
+      "id": "agent-weather-01",
+      "lang": "en",
+      "tags": ["weather"],
+      "query": "what should I wear today — is it cold outside?",
+      "note": "Weather-dependent request: get_weather is called BEFORE any search.",
+      "expected": {
+        "hard": {},
+        "trajectory": ["get_weather", "search_wardrobe", "generate_outfit", "validate_outfit", "finish"],
+        "termination": "valid-outfit",
+        "ok": true,
+        "relevantIds": []
+      }
+    },
+    {
+      "id": "agent-prefs-01",
+      "lang": "en",
+      "tags": ["prefs"],
+      "query": "an outfit for me with a top and jeans",
+      "note": "Personalized request: get_user_preferences is called FIRST.",
+      "expected": {
+        "hard": { "categories": ["tops", "bottoms"] },
+        "trajectory": ["get_user_preferences", "search_wardrobe", "generate_outfit", "validate_outfit", "finish"],
+        "termination": "valid-outfit",
+        "ok": true,
+        "relevantIds": []
+      }
+    },
+    {
+      "id": "agent-weather-retry-01",
+      "lang": "en",
+      "tags": ["weather", "retry"],
+      "query": "give me a black summer outfit",
+      "note": "Black+summer admits t5/b4/s3; the weather guard rejects s3 (canvas sneakers tagged cool/mild). One retry with the SAME hard set, then finish no-valid. Hard constraints are NEVER relaxed between searches.",
+      "expected": {
+        "hard": { "colors": ["black"], "seasons": ["summer"] },
+        "trajectory": ["search_wardrobe", "generate_outfit", "validate_outfit", "search_wardrobe", "generate_outfit", "validate_outfit", "finish"],
+        "termination": "no-valid-outfit",
+        "ok": false,
+        "relevantIds": [],
+        "hardStableAcrossSearches": true
+      }
+    },
+    {
+      "id": "agent-zero-zh-01",
+      "lang": "zh",
+      "tags": ["zero", "unsatisfiable"],
+      "query": "一个精致的黑色手提包",
+      "note": "The catalog has NO bags. Zero candidates; one retry with the frozen hard set, then finish unsatisfiable.",
+      "expected": {
+        "hard": { "categories": ["bags"], "colors": ["black"] },
+        "trajectory": ["search_wardrobe", "search_wardrobe", "finish"],
+        "termination": "unsatisfiable",
+        "ok": false,
+        "relevantIds": [],
+        "hardStableAcrossSearches": true
+      }
+    },
+    {
+      "id": "agent-stale-01",
+      "lang": "en",
+      "tags": ["stale", "grounding"],
+      "query": "a crew neck tee with jeans",
+      "seedGhosts": ["t1"],
+      "note": "A ghost vector identical to t1 ranks at the top. It must never surface in candidates, the look, or the final items.",
+      "expected": {
+        "hard": { "categories": ["tops", "bottoms"] },
+        "trajectory": ["search_wardrobe", "generate_outfit", "validate_outfit", "finish"],
+        "termination": "valid-outfit",
+        "ok": true,
+        "relevantIds": ["t1"]
+      }
+    }
+  ]
+}

@@ -11,20 +11,19 @@ interface CutoutImageProps {
 
 /** The subject cut out and presented on a pure white background. */
 export function CutoutImage({ src, alt = "", className = "" }: CutoutImageProps) {
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ src: string; dataUrl: string } | null>(null);
   const requestRef = useRef(0);
 
   useEffect(() => {
-    // Storage URLs are already transparent cutouts — no canvas processing
-    if (src.startsWith("http")) {
-      setResult(null);
-      return;
-    }
+    // Storage URLs are already transparent cutouts — no canvas processing.
+    // No state reset here: what to show is derived from `src` at render time
+    // below, so switching between srcs needs no synchronous setState at all.
+    if (src.startsWith("http")) return;
     const id = ++requestRef.current;
     let alive = true;
     cutoutCanvas(src, 640)
       .then((cut) => {
-        if (alive && id === requestRef.current) setResult(cutoutToWhite(cut));
+        if (alive && id === requestRef.current) setResult({ src, dataUrl: cutoutToWhite(cut) });
       })
       .catch(() => {});
     return () => {
@@ -32,10 +31,10 @@ export function CutoutImage({ src, alt = "", className = "" }: CutoutImageProps)
     };
   }, [src]);
 
-  if (!result) {
-    // eslint-disable-next-line @next/next/no-img-element -- pre-cutout preview
+  const isRemote = src.startsWith("http");
+  const currentCutout = result?.src === src ? result.dataUrl : null;
+  if (!currentCutout || isRemote) {
     return <img src={src} alt={alt} className={className} loading="lazy" />;
   }
-  // eslint-disable-next-line @next/next/no-img-element -- canvas-composed data URL
-  return <img src={result} alt={alt} className={className} />;
+  return <img src={currentCutout} alt={alt} className={className} />;
 }

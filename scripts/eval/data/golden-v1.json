@@ -1,0 +1,97 @@
+{
+  "schemaName": "mystylist-eval-golden",
+  "schemaVersion": "1",
+  "description": "Phase 5 golden set v1 — 15 cases (9 en / 6 zh) across all six feature facets. expected.hard is a MUST-CONTAIN subset of the parsed hard constraints (the deterministic extractor + provider union may add more values); equal parsers must never omit these. ok is the expected final verdict.",
+  "cases": [
+    { "id": "normal-en-01", "lang": "en", "tags": ["normal"],
+      "query": "a relaxed outfit for a coffee date with a top and trousers",
+      "expected": { "hard": { "categories": ["tops", "bottoms"] }, "ok": true,
+        "relevantIds": ["t1", "t2", "t3", "t4", "b1", "b2"] },
+      "note": "Category keywords 'top' + 'trousers' force a full top+bottom look; coffee date is context (never a filter)." },
+
+    { "id": "normal-zh-01", "lang": "zh", "tags": ["normal"],
+      "query": "蓝色短袖配黑色裤子",
+      "expected": { "hard": { "categories": ["tops", "bottoms"], "colors": ["blue", "black"] }, "ok": true,
+        "relevantIds": ["t1", "b2", "t2"] },
+      "note": "Bilingual extraction: 蓝色/黑色 → palette, 短袖→tops, 裤子→bottoms. The IDEAL look is t1 (blue tee) + b2 (black jeans); the offline hash embedding empirically prefers the all-black t5+b4 combo (shorter texts, denser overlap). Constraint-satisfying but color-intent missing — measured by compose-recall and called out as a hosted-embedding trigger." },
+
+    { "id": "hard-en-01", "lang": "en", "tags": ["hard"],
+      "query": "all black winter outfit",
+      "expected": { "hard": { "colors": ["black"], "seasons": ["winter"] }, "ok": true,
+        "relevantIds": ["t2", "b2", "o1", "s2"], "mustNotContain": ["t1", "b3", "s1"] },
+      "note": "Every composed piece must itself be black AND winter-gated; the hard-constraint guard re-verifies each id." },
+
+    { "id": "hard-en-02", "lang": "en", "tags": ["hard"],
+      "query": "black turtleneck with jeans",
+      "expected": { "hard": { "categories": ["tops", "bottoms"], "colors": ["black"] }, "ok": true,
+        "relevantIds": ["t2", "b2", "t5"] },
+      "note": "Tightest case: candidates after the union extractor are {t2,t5,b2,b4}. The pipeline only CONTRACTS to a grounded look whose every piece satisfies the constraints; picking the exact named pair is a RANKING quality signal, and the offline hash embedding demonstrably prefers the shorter-text black tank (t5) over the turtleneck (t2) — logged as a finding, not a golden failure." },
+
+    { "id": "hard-zh-01", "lang": "zh", "tags": ["hard"],
+      "query": "给我一套全黑冬装",
+      "expected": { "hard": { "colors": ["black"], "seasons": ["winter"] }, "ok": true,
+        "relevantIds": ["t2", "b2", "o1", "s2"] },
+      "note": "全黑(black) + 冬(winter) → same candidate set as hard-en-01 through the CJK lane." },
+
+    { "id": "zero-en-01", "lang": "en", "tags": ["zero"],
+      "query": "an elegant black handbag",
+      "expected": { "hard": { "categories": ["bags"], "colors": ["black"] }, "ok": false, "relevantIds": [] },
+      "note": "Catalog deliberately has NO bags → zero candidates after the hard filter is a valid, lossless state (NO_MATCHES), not an error." },
+
+    { "id": "zero-zh-01", "lang": "zh", "tags": ["zero"],
+      "query": "一个精致的黑色手提包",
+      "expected": { "hard": { "categories": ["bags"], "colors": ["black"] }, "ok": false, "relevantIds": [] },
+      "note": "手提包→bags through the CJK lane; same empty-candidate outcome." },
+
+    { "id": "semantic-en-01", "lang": "en", "tags": ["semantic"],
+      "query": "give me something minimalist for a city day",
+      "expected": { "hard": {}, "ok": true,
+        "relevantIds": ["t2", "b2", "o1", "d1", "b1", "a1"] },
+      "note": "No extractable hard constraint; 'minimalist' rides the soft lane into the embedded query text and must recall the minimalist-tagged pieces." },
+
+    { "id": "semantic-zh-01", "lang": "zh", "tags": ["semantic"],
+      "query": "极简 minimalist 风格的一天穿搭",
+      "expected": { "hard": {}, "ok": true,
+        "relevantIds": ["t2", "b2", "o1", "d1", "b1", "a1"] },
+      "note": "极简 expands via textrep (minimalist→极简); the Latin token keeps the offline hash overlap deterministic. Pure-CJK style recall is an open question (see EVALUATION.md)." },
+
+    { "id": "weather-en-01", "lang": "en", "tags": ["weather"],
+      "query": "warm winter outfit",
+      "expected": { "hard": { "seasons": ["winter"] }, "ok": true,
+        "relevantIds": ["t2", "t4", "b2", "o1", "s2"] },
+      "note": "Every winter piece is weather-compatible with {cold,cool}; the weather guard should pass vacuously-then-positively." },
+
+    { "id": "weather-zh-01", "lang": "zh", "tags": ["weather"],
+      "query": "冬天的一身暖和穿搭",
+      "expected": { "hard": { "seasons": ["winter"] }, "ok": true,
+        "relevantIds": ["t2", "t4", "b2", "o1", "s2"] },
+      "note": "冬天→winter; same positive path as weather-en-01." },
+
+    { "id": "weather-en-02", "lang": "en", "tags": ["weather", "hard"],
+      "query": "black summer outfit",
+      "expected": { "hard": { "colors": ["black"], "seasons": ["summer"] }, "ok": false,
+        "relevantIds": ["t5", "b4", "s3"] },
+      "note": "Deliberate trait bug in the catalog: s3 is a summer-season CANDIDATE but tagged cool/mild, not {warm,hot}. The deterministic weather guard must reject the composed look even though every piece satisfies the hard constraints — constraintSatisfied=true while validation=false proves the two signals are distinct." },
+
+    { "id": "stale-en-01", "lang": "en", "tags": ["stale"],
+      "query": "a crew neck tee with jeans",
+      "seedGhosts": ["t1"],
+      "expected": { "hard": { "categories": ["tops", "bottoms"] }, "ok": true,
+        "relevantIds": ["t1", "b2", "b1"], "mustNotContain": ["ghost-t1"] },
+      "note": "A duplicate of t1's vector record is seeded under ghost-t1 before the run. It must never surface in hits or the composed look (no metadata to pass the filter, no catalog entry to survive compose)." },
+
+    { "id": "stale-zh-01", "lang": "zh", "tags": ["stale"],
+      "query": "蓝色t恤配黑色裤子",
+      "seedGhosts": ["t1"],
+      "expected": { "hard": { "categories": ["tops", "bottoms"], "colors": ["blue", "black"] }, "ok": true,
+        "relevantIds": ["t1", "b2", "t2"], "mustNotContain": ["ghost-t1"] },
+      "note": "Ghost variant through the CJK lane." },
+
+    { "id": "stale-en-02", "lang": "en", "tags": ["stale", "semantic"],
+      "query": "something with a crew neck",
+      "seedGhosts": ["t1"],
+      "expected": { "hard": {}, "ok": true,
+        "relevantIds": ["t1"], "mustNotContain": ["ghost-t1"] },
+      "note": "UNCONSTRAINED query ('crew'/'neck' are not vocabulary, so hard=={}): the pipeline STILL removes ghost-t1 in the search pre-filter, because query.hard is always an object and filterByConstraints runs the getItem liveness check even for an empty filter. Layer-1 (search liveness) therefore always wins inside recommend; the compose drop (layer-2) is defense-in-depth and is exercised directly in the eval unit tests via semanticSearch(constraints:null). The low scores also surface the offline hash embedding's weak discrimination for one-shot style queries — a hosted-embedding trigger." }
+  ]
+}

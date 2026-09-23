@@ -112,6 +112,11 @@ export function MattingEditor({ src, onDone, onHint, onCancel }: MattingEditorPr
   }, [src]);
 
   useEffect(() => {
+    // Kick off the matting pipeline once on mount. The synchronous resets
+    // inside `run()` are no-ops here (stage/result start at their initial
+    // values) and exist for the retry button; the new-react-hooks rule can't
+    // tell those paths apart, so the mount call is opted out deliberately.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     run();
     return () => abortRef.current?.abort();
   }, [run]);
@@ -139,7 +144,7 @@ export function MattingEditor({ src, onDone, onHint, onCancel }: MattingEditorPr
               onSave={setEdited}
             />
           ) : (
-            /* eslint-disable-next-line @next/next/no-img-element — user upload */
+            /* eslint-disable-next-line @next/next/no-img-element -- user upload */
             <img
               src={src}
               alt=""

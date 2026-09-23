@@ -88,6 +88,20 @@ export default function AddItemPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "save failed");
       }
+      // Independent, post-save AI metadata extraction (Phase 1). The server
+      // resolves the cutout from the saved item — no provider is ever
+      // hard-coded here, and failure never blocks the saved wardrobe item.
+      // keepalive lets the request finish even after the navigation below.
+      const saved = (await res.json().catch(() => null)) as { item?: { id?: string } } | null;
+      const savedItemId = saved?.item?.id;
+      if (savedItemId) {
+        void fetch("/api/ai/metadata", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itemId: savedItemId }),
+          keepalive: true,
+        }).catch(() => {});
+      }
       // HARD navigation + cache-buster — guarantees the wardrobe grid and
       // profile counts re-render from the server with the new piece
       window.location.href = `/stylist?t=${Date.now()}`;
@@ -159,7 +173,7 @@ export default function AddItemPage() {
         <div className="grid gap-8 md:grid-cols-[minmax(0,460px)_1fr]">
           <div>
             <div className="checker hairline aspect-[3/4] w-full max-w-[460px] overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element — cutout result */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- cutout result */}
               <img src={image} alt={name || "item"} className="h-full w-full object-contain" />
             </div>
             <div className="mt-3 flex max-w-[460px] items-center justify-between">

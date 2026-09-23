@@ -6,12 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/lib/metadata/__tests__/extract.test.ts src/lib/retrieval/__tests__/retrieval.test.ts src/lib/recommend/__tests__/recommend.test.ts src/lib/recommend/__tests__/validate.test.ts src/lib/agent/__tests__/agent.test.ts scripts/eval/__tests__/eval.test.ts scripts/eval/__tests__/agent-eval.test.ts",
+    "eval": "node --import tsx scripts/eval/runner.ts",
+    "eval:deepseek": "node --import tsx scripts/eval/runner.ts --provider deepseek",
+    "eval:agent": "node --import tsx scripts/eval/agent-runner.ts",
+    "eval:agent:deepseek": "node --import tsx scripts/eval/agent-runner.ts --provider deepseek --strict"
   },
   "dependencies": {
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

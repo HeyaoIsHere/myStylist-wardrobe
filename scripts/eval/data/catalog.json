@@ -1,0 +1,48 @@
+{
+  "schemaName": "mystylist-eval-catalog",
+  "schemaVersion": "1",
+  "description": "Synthetic wardrobe used ONLY by the Phase 5 evaluation. Never loaded by the app. 18 items, no bags (to exercise zero-result retrieval), one weather-mismatched shoe (s3: summer season but cool/mild weather tags) to exercise the deterministic weather guard.",
+  "catalog": [
+    { "item": { "id": "t1", "name": "Blue Crew Neck Tee", "category": "tops" },
+      "attrs": { "subcategory": "t-shirt", "colors": [{ "name": "blue", "hex": "#2E5AAC" }], "material": ["cotton"], "pattern": ["solid"], "fit": "regular", "styleTags": ["casual"], "seasons": ["spring", "summer"], "occasions": ["daily", "coffee date"], "formality": "casual", "weatherSuitability": ["cool", "mild"] } },
+    { "item": { "id": "t2", "name": "Black Turtleneck Sweater", "category": "tops" },
+      "attrs": { "subcategory": "knit top", "colors": [{ "name": "black", "hex": "#111111" }], "material": ["wool"], "pattern": ["solid"], "fit": "regular", "styleTags": ["cozy", "minimalist"], "seasons": ["autumn", "winter"], "occasions": ["daily", "office"], "formality": "smart-casual", "weatherSuitability": ["cool", "cold"] } },
+    { "item": { "id": "t3", "name": "White Oxford Shirt", "category": "tops" },
+      "attrs": { "subcategory": "button-down shirt", "colors": [{ "name": "white", "hex": "#F5F5F5" }], "material": ["cotton"], "pattern": ["solid"], "fit": "tailored", "styleTags": ["classic", "crisp"], "seasons": ["spring", "autumn"], "occasions": ["office", "business"], "formality": "smart-casual", "weatherSuitability": ["mild"] } },
+    { "item": { "id": "t4", "name": "Navy Cashmere Knit", "category": "tops" },
+      "attrs": { "subcategory": "crewneck sweater", "colors": [{ "name": "navy", "hex": "#1A2744" }], "material": ["cashmere"], "pattern": ["solid"], "fit": "regular", "styleTags": ["classic", "cozy"], "seasons": ["autumn", "winter"], "occasions": ["office", "evening"], "formality": "smart-casual", "weatherSuitability": ["cool", "cold"] } },
+    { "item": { "id": "t5", "name": "Black Cotton Tank Top", "category": "tops" },
+      "attrs": { "subcategory": "tank", "colors": [{ "name": "black", "hex": "#111111" }], "material": ["cotton"], "pattern": ["solid"], "fit": "slim", "styleTags": ["casual"], "seasons": ["summer"], "occasions": ["daily"], "formality": "casual", "weatherSuitability": ["warm", "hot"] } },
+
+    { "item": { "id": "b1", "name": "Beige Straight Trousers", "category": "bottoms" },
+      "attrs": { "subcategory": "trousers", "colors": [{ "name": "beige", "hex": "#C8AD7F" }], "material": ["wool"], "pattern": ["solid"], "fit": "straight", "styleTags": ["minimalist"], "seasons": ["spring", "summer"], "occasions": ["office", "daily"], "formality": "smart-casual", "weatherSuitability": ["mild"] } },
+    { "item": { "id": "b2", "name": "Black Slim Jeans", "category": "bottoms" },
+      "attrs": { "subcategory": "jeans", "colors": [{ "name": "black", "hex": "#1A1A1A" }], "material": ["denim"], "pattern": ["solid"], "fit": "slim", "styleTags": ["edgy", "minimalist"], "seasons": ["autumn", "winter"], "occasions": ["daily", "coffee date"], "formality": "casual", "weatherSuitability": ["cool", "cold"] } },
+    { "item": { "id": "b3", "name": "White Linen Trousers", "category": "bottoms" },
+      "attrs": { "subcategory": "trousers", "colors": [{ "name": "white", "hex": "#F5F5F5" }], "material": ["linen"], "pattern": ["solid"], "fit": "regular", "styleTags": ["light", "summer"], "seasons": ["summer"], "occasions": ["holiday", "daily"], "formality": "smart-casual", "weatherSuitability": ["warm", "hot"] } },
+    { "item": { "id": "b4", "name": "Black Linen Shorts", "category": "bottoms" },
+      "attrs": { "subcategory": "shorts", "colors": [{ "name": "black", "hex": "#1A1A1A" }], "material": ["linen"], "pattern": ["solid"], "fit": "regular", "styleTags": ["casual", "summer"], "seasons": ["summer"], "occasions": ["holiday", "daily"], "formality": "casual", "weatherSuitability": ["warm", "hot"] } },
+
+    { "item": { "id": "d1", "name": "Beige Wrap Dress", "category": "dresses" },
+      "attrs": { "subcategory": "wrap dress", "colors": [{ "name": "beige", "hex": "#C8AD7F" }], "material": ["cotton"], "pattern": ["solid"], "fit": "regular", "styleTags": ["feminine", "minimalist"], "seasons": ["spring", "summer"], "occasions": ["date", "brunch"], "formality": "smart-casual", "weatherSuitability": ["mild"] } },
+    { "item": { "id": "d2", "name": "Navy Cocktail Dress", "category": "dresses" },
+      "attrs": { "subcategory": "cocktail dress", "colors": [{ "name": "navy", "hex": "#1A2744" }], "material": ["satin"], "pattern": ["solid"], "fit": "fitted", "styleTags": ["evening", "elegant"], "seasons": ["autumn"], "occasions": ["party", "evening"], "formality": "formal", "weatherSuitability": ["cool"] } },
+    { "item": { "id": "d3", "name": "Lilac Satin Slip Dress", "category": "dresses" },
+      "attrs": { "subcategory": "slip dress", "colors": [{ "name": "lilac", "hex": "#C8A2C8" }], "material": ["satin"], "pattern": ["solid"], "fit": "slim", "styleTags": ["evening"], "seasons": ["summer"], "occasions": ["party", "evening"], "formality": "formal", "weatherSuitability": ["warm", "hot"] } },
+
+    { "item": { "id": "o1", "name": "Black Wool Overcoat", "category": "outerwear" },
+      "attrs": { "subcategory": "overcoat", "colors": [{ "name": "black", "hex": "#111111" }], "material": ["wool"], "pattern": ["solid"], "fit": "oversized", "styleTags": ["minimalist"], "seasons": ["autumn", "winter"], "occasions": ["commute", "office"], "formality": "business", "weatherSuitability": ["cold", "cool"] } },
+    { "item": { "id": "o2", "name": "Grey Trench Coat", "category": "outerwear" },
+      "attrs": { "subcategory": "trench coat", "colors": [{ "name": "grey", "hex": "#9C9C9C" }], "material": ["cotton"], "pattern": ["solid"], "fit": "regular", "styleTags": ["classic"], "seasons": ["spring", "autumn"], "occasions": ["commute", "evening"], "formality": "smart-casual", "weatherSuitability": ["cool", "mild"] } },
+
+    { "item": { "id": "s1", "name": "White Leather Sneakers", "category": "shoes" },
+      "attrs": { "subcategory": "sneakers", "colors": [{ "name": "white", "hex": "#F5F5F5" }], "material": ["leather"], "pattern": ["solid"], "fit": "regular", "styleTags": ["casual"], "seasons": ["spring", "summer"], "occasions": ["daily"], "formality": "casual", "weatherSuitability": ["mild"] } },
+    { "item": { "id": "s2", "name": "Black Leather Boots", "category": "shoes" },
+      "attrs": { "subcategory": "ankle boots", "colors": [{ "name": "black", "hex": "#111111" }], "material": ["leather"], "pattern": ["solid"], "fit": "regular", "styleTags": ["edgy"], "seasons": ["autumn", "winter"], "occasions": ["daily", "commute"], "formality": "smart-casual", "weatherSuitability": ["cold", "cool"] } },
+    { "item": { "id": "s3", "name": "Black Canvas Sneakers", "category": "shoes" },
+      "attrs": { "subcategory": "sneakers", "colors": [{ "name": "black", "hex": "#1A1A1A" }], "material": ["canvas"], "pattern": ["solid"], "fit": "regular", "styleTags": ["casual", "summer"], "seasons": ["summer"], "occasions": ["daily"], "formality": "casual", "weatherSuitability": ["cool", "mild"] } },
+
+    { "item": { "id": "a1", "name": "Silver Hoop Earrings", "category": "accessories" },
+      "attrs": { "subcategory": "earrings", "colors": [{ "name": "silver", "hex": "#C0C0C0" }], "material": ["metal"], "pattern": [], "fit": null, "styleTags": ["minimalist"], "seasons": [], "occasions": ["evening", "daily"], "formality": null, "weatherSuitability": [] } }
+  ]
+}

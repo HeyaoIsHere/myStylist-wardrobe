@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local matting venv — vendored Python site-packages ship JS that must
+    // never be linted (torch, numpy web assembly, etc.).
+    "tools/matting/.venv/**",
   ]),
 ]);
 

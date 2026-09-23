@@ -9,6 +9,7 @@ import { LanguageSwitch } from "@/components/ui/LanguageSwitch";
 const LINKS = [
   { key: "home", href: "/" },
   { key: "wardrobe", href: "/stylist" },
+  { key: "agent", href: "/agent" },
   { key: "profile", href: "/profile" },
 ] as const;
 
